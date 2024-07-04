@@ -7,12 +7,14 @@ import com.microsoft.playwright.Playwright;
 import com.scraping.products.model.DadosConsulta;
 import com.scraping.products.model.DadosConsultaResultado;
 import com.scraping.products.model.Produto;
+import com.scraping.products.repository.ProdutoRepository;
 import com.scraping.products.scrapper.kabum.service.BuscaItem;
 import com.scraping.products.scrapper.kabum.service.RetornaListaDeProdutos;
 import com.scraping.products.scrapper.kabum.service.validacao.ValidaBusca;
 import com.scraping.products.service.ResultadosConsulta;
 import lombok.Setter;
 import org.json.JSONArray;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -25,6 +27,9 @@ import java.util.List;
 public class IniciaScrapperKabum implements Runnable{
 
     DadosConsulta dadosconsulta;
+
+    @Autowired
+    BeanFactory beanFactory;
 
     @Autowired
     ResultadosConsulta resultadosConsulta;
@@ -41,7 +46,7 @@ public class IniciaScrapperKabum implements Runnable{
     private void iniciaConsulta() {
         try (Playwright playwright = Playwright.create()) {
             BrowserType browserType = playwright.chromium();
-            Browser browser = browserType.launch(new BrowserType.LaunchOptions().setHeadless(false));
+            Browser browser = browserType.launch(new BrowserType.LaunchOptions().setHeadless(true));
             Page page = browser.newPage();
             page.navigate("https://www.kabum.com.br/");
 
@@ -51,8 +56,13 @@ public class IniciaScrapperKabum implements Runnable{
             List<Produto> produtos = new RetornaListaDeProdutos().buscaProdutos(page);
             JSONArray jsonArray = new JSONArray();
 
+            ProdutoRepository produtoRepository = beanFactory.getBean(ProdutoRepository.class);
+
             produtos.forEach(produto->{
-                System.out.println(produto.toJson().toString());
+               Produto produtoDb = produtoRepository.getReferenceByCodigoKabum(produto.getCodigoKabum()) ;
+               if(produtoDb == null){
+                  produtoRepository.save(produto);
+               }
                 jsonArray.put(produto.toJson());
             });
             System.out.println(jsonArray);

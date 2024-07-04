@@ -6,7 +6,6 @@ import com.scraping.products.model.Produto;
 import org.jsoup.nodes.Document;
 import org.jsoup.Jsoup;
 import org.jsoup.select.Elements;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,10 +17,10 @@ public class RetornaListaDeProdutos {
 
         produtosElements.forEach(produtoElement->{
             Produto produto = new Produto();
-            produto.setUrlProduto("https://www.kabum.com.br/"+produtoElement.select("a[href]").attr("href"));
-            produto.setDescricaoProduto(produtoElement.select("img[class=imageCard]").attr("title"));
+            produto.setUrl("https://www.kabum.com.br"+produtoElement.select("a[href]").attr("href"));
+            produto.setDescricao(produtoElement.select("img[class=imageCard]").attr("title"));
 
-            page.navigate(produto.getUrlProduto());
+            page.navigate(produto.getUrl());
 
             page.waitForSelector("#logoKabum > a > img");
 

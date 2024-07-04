@@ -1,28 +1,39 @@
 package com.scraping.products.model;
 
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import org.json.JSONObject;
 @Getter
 @Setter
+@EqualsAndHashCode(of = "id")
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity(name = "Produto")
+@Table(name = "produtos")
 public class Produto {
-    private String descricaoProduto;
-    private String valorProduto;
-    private String valorProdutoAvista;
-    private String urlProduto;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String descricao;
+    private Float valor;
+    private Float valorAvista;
+    private String url;
+    private Float desconto = 0.0f;
+
+    @Column(name = "codigoKabum")
+    private int codigoKabum;
 
     public JSONObject toJson(){
         JSONObject json = new JSONObject();
-        json.put("descricaoProduto",this.descricaoProduto);
-        json.put("valorProduto",this.valorProduto);
-        json.put("valorProdutoAvista",this.valorProdutoAvista);
-        json.put("urlProduto",this.urlProduto);
-        if(this.valorProdutoAvista!=null&&this.valorProduto!=null){
-            float valorProdutoFloat = Float.parseFloat(this.valorProduto.replace(".","").replace(",","."));
-            float valorAvistaProdutoFloat = Float.parseFloat(this.valorProdutoAvista.replace(".","").replace(",","."));
-            float desconto = (valorProdutoFloat - valorAvistaProdutoFloat);
-            json.put("desconto",desconto);
-        }
+
+        json.put("descricaoProduto",this.descricao);
+        json.put("valorProduto",this.valor);
+        json.put("valorProdutoAvista",this.valorAvista);
+        json.put("urlProduto",this.url);
+        json.put("codigoKabum",this.codigoKabum);
+        json.put("desconto", this.desconto);
+
         return json;
     }
 
