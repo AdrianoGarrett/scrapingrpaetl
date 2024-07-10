@@ -9,6 +9,7 @@ import com.scraping.products.model.DadosConsultaResultado;
 import com.scraping.products.model.Produto;
 import com.scraping.products.repository.ProdutoRepository;
 import com.scraping.products.scrapper.kabum.service.BuscaItem;
+import com.scraping.products.scrapper.kabum.service.ExecutaAcao;
 import com.scraping.products.scrapper.kabum.service.RetornaListaDeProdutos;
 import com.scraping.products.scrapper.kabum.service.validacao.ValidaBusca;
 import com.scraping.products.service.ResultadosConsulta;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Setter
@@ -33,6 +35,11 @@ public class IniciaScrapperKabum implements Runnable{
 
     @Autowired
     ResultadosConsulta resultadosConsulta;
+
+    List<ExecutaAcao> executaAcaos = Arrays.asList(
+            new BuscaItem(),
+            new ValidaBusca()
+    );
 
     @Override
     public void run() {
@@ -50,30 +57,7 @@ public class IniciaScrapperKabum implements Runnable{
             Page page = browser.newPage();
             page.navigate("https://www.kabum.com.br/");
 
-            new BuscaItem().executaAcao(page,dadosconsulta);
-            new ValidaBusca().executaAcao(page,dadosconsulta);
-
-            List<Produto> produtos = new RetornaListaDeProdutos().buscaProdutos(page);
-            JSONArray jsonArray = new JSONArray();
-
-            ProdutoRepository produtoRepository = beanFactory.getBean(ProdutoRepository.class);
-
-            produtos.forEach(produto->{
-               Produto produtoDb = produtoRepository.getReferenceByCodigoKabum(produto.getCodigoKabum()) ;
-               if(produtoDb == null){
-                  produtoRepository.save(produto);
-               }
-                jsonArray.put(produto.toJson());
-            });
-            System.out.println(jsonArray);
-
-            DadosConsultaResultado dadosConsultaResultado = new DadosConsultaResultado();
-
-            dadosConsultaResultado.setTaskId(dadosconsulta.getTaskId());
-            dadosConsultaResultado.setProdutoDesejado(dadosconsulta.getProdutoDesejado());
-            dadosConsultaResultado.setResultadoConsulta(jsonArray);
-
-            resultadosConsulta.adicionaNaLista(dadosConsultaResultado);
+            executaAcoes(page);
 
             browser.close();
         } catch (Exception ex){
@@ -81,4 +65,41 @@ public class IniciaScrapperKabum implements Runnable{
         }
 
     }
+
+    private void executaAcoes(Page page) {
+        for(ExecutaAcao executaAcao:executaAcaos){
+            executaAcao.executaAcao(page,dadosconsulta);
+            if(executaAcao instanceof ValidaBusca){
+                buscaProdutos(page);
+            }
+        }
+    }
+
+    private void buscaProdutos(Page page) {
+        List<Produto> produtos = new RetornaListaDeProdutos().buscaProdutos(page);
+        JSONArray jsonArray = new JSONArray();
+
+        ProdutoRepository produtoRepository = beanFactory.getBean(ProdutoRepository.class);
+
+        produtos.forEach(produto->{
+            Produto produtoDb = produtoRepository.getReferenceByCodigoKabum(produto.getCodigoKabum()) ;
+            if(produtoDb == null){
+                produtoRepository.save(produto);
+            }
+            jsonArray.put(produto.toJson());
+        });
+        System.out.println(jsonArray);
+        salvaResultado(jsonArray);
+    }
+
+    private void salvaResultado(JSONArray jsonArray) {
+        DadosConsultaResultado dadosConsultaResultado = new DadosConsultaResultado();
+
+        dadosConsultaResultado.setTaskId(dadosconsulta.getTaskId());
+        dadosConsultaResultado.setProdutoDesejado(dadosconsulta.getProdutoDesejado());
+        dadosConsultaResultado.setResultadoConsulta(jsonArray);
+
+        resultadosConsulta.adicionaNaLista(dadosConsultaResultado);
+    }
 }
+;
